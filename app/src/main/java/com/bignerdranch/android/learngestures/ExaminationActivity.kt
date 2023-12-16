@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.rememberImagePainter
 import com.bignerdranch.android.learngestures.db.data.GesturesEntity
 import com.bignerdranch.android.learngestures.ui.theme.LearnGesturesTheme
 import com.bignerdranch.android.learngestures.ui.theme.Purple40
@@ -318,13 +319,13 @@ class ExaminationActivity : ComponentActivity() {
                 Cross()
             }
 
-//            if (shouldShowPhoto.value) {
-//                Image(
-//                painter = rememberImagePainter(photoUri),
-//                contentDescription = null,
-//                modifier = Modifier.fillMaxSize()
-//                )
-//            }
+            if (shouldShowPhoto.value) {
+                Image(
+                painter = rememberImagePainter(photoUri),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize()
+                )
+            }
 
             if (indexLetter > COUNT_GESTURES - 1) {
                 openDialogWinner = true

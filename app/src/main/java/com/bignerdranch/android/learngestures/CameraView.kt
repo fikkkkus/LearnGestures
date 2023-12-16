@@ -238,8 +238,26 @@ private fun takePhoto(
         }
 
         override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
+            //val savedUri = Uri.fromFile(photoFile)
+            //onImageCaptured(savedUri)
+
             val savedUri = Uri.fromFile(photoFile)
-            onImageCaptured(savedUri)
+            val inputStream = context.contentResolver.openInputStream(savedUri)
+            val bitmap = BitmapFactory.decodeStream(inputStream)
+
+            val cropSize = bitmap.width
+            val cropX = 0
+            val cropY = (bitmap.height - cropSize) / 2
+
+            val croppedBitmap = Bitmap.createBitmap(bitmap, cropX, cropY, cropSize, cropSize)
+
+            val croppedFile = File(outputDirectory, filenameFormat)
+            val outputStream = FileOutputStream(croppedFile)
+            croppedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+            outputStream.flush()
+            outputStream.close()
+
+            onImageCaptured(Uri.fromFile(croppedFile))
         }
 
     })

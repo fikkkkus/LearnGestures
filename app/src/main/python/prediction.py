@@ -4,22 +4,11 @@ import tensorflow as tf
 from os.path import dirname, join
 
 def resize_and_grayscale(image_path, size=(28, 28)):
-	img = cv2.imread(image_path)
-
-	crop_size = min(img.shape[0], img.shape[1])
-	crop_x = (img.shape[1] - crop_size) // 2
-	crop_y = (img.shape[0] - crop_size) // 2
-
-	cropped_img = img[crop_y:crop_y+crop_size, crop_x:crop_x+crop_size]
-
-	resized_img = cv2.resize(cropped_img, size, interpolation=cv2.INTER_AREA)
-
-	resized_img_gray = cv2.cvtColor(resized_img, cv2.COLOR_BGR2GRAY)
-
-	img_matrix = np.array(resized_img_gray) / 255
-
-	img_matrix = img_matrix.reshape(-1, size[0], size[1], 1)
-
+	img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+	print(img.shape)
+	img_resized = cv2.resize(img, size)
+	img_matrix = np.array(img_resized) / 255
+	img_matrix = img_matrix.reshape(-1, 28, 28, 1)
 	return img_matrix
 
 
