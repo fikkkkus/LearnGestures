@@ -1,8 +1,5 @@
 package com.bignerdranch.android.learngestures
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.gesture.Gesture
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -10,7 +7,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedDispatcher
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -44,29 +40,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.ImagePainter.State.Empty.painter
-import coil.compose.rememberImagePainter
 import com.bignerdranch.android.learngestures.db.data.GesturesEntity
 import com.bignerdranch.android.learngestures.ui.theme.LearnGesturesTheme
 import com.bignerdranch.android.learngestures.ui.theme.Purple40
 import com.chaquo.python.Python
-import com.chaquo.python.android.AndroidPlatform
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import java.io.File
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import kotlin.random.Random
+
 
 
 class ExaminationActivity : ComponentActivity() {
@@ -78,33 +69,45 @@ class ExaminationActivity : ComponentActivity() {
     private lateinit var photoUri: Uri
     private var shouldShowPhoto: MutableState<Boolean> = mutableStateOf(false)
 
-    override fun onBackPressed() {
-        openDialogExit = true
-        return; super.onBackPressed()
-    }
+    private val COUNT_GESTURES = 10
+    private val MAX_INDEX_GESTURE = 25
+    private var GESTURES_INDEXES = (0 until MAX_INDEX_GESTURE)
+        .toList()
+        //.shuffled()
+        .take(COUNT_GESTURES)
 
-    private val COUNT_GESTURES = 24
+    var indexLetter by mutableStateOf(0)
+    var thisLetter = ""
 
     var openDialogExit by mutableStateOf(false)
     var openDialogLoser by mutableStateOf(false)
     var openDialogWinner by mutableStateOf(false)
 
-    var indexLetter by mutableStateOf(0)
-    var thisLetter = ""
 
     var countHeartOn by mutableStateOf(3)
     var countHeartOff by mutableStateOf(0)
 
+    var showInstructionDialog by mutableStateOf(true)
+
+    var showCheckmark by mutableStateOf(false)
+    var showCross by mutableStateOf(false)
+
+    override fun onBackPressed() {
+        openDialogExit = true
+        return; super.onBackPressed()
+    }
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-
         outputDirectory = getOutputDirectory()
         cameraExecutor = Executors.newSingleThreadExecutor()
 
         setContent {
+
+            showInstructionDialog()
+
             val mainViewModel: MainViewModel = viewModel(factory = MainViewModel.factory)
             val itemsList = mainViewModel.getAllGestures().collectAsState(listOf())
 
@@ -169,9 +172,22 @@ class ExaminationActivity : ComponentActivity() {
         
         if (predict == thisLetter) {
             indexLetter++
+
+            showCheckmark = true
+            lifecycleScope.launch {
+                delay(1500)
+                showCheckmark = false
+            }
+
         } else {
             countHeartOff++
             countHeartOn--
+
+            showCross = true
+            lifecycleScope.launch {
+                delay(1500)
+                showCross = false
+            }
         }
     }
 
@@ -185,6 +201,56 @@ class ExaminationActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         cameraExecutor.shutdown()
+    }
+    @Composable
+    private fun showInstructionDialog() {
+        if (showInstructionDialog) {
+            AlertDialog(
+                onDismissRequest = {
+                    showInstructionDialog = false
+                },
+                title = {
+                    Text(
+                        text = "Проверка знаний",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
+                },
+                text = {
+                    Column {
+                        Text(
+                            text = "Изобразите жест, соответствующий букве.",
+                            style = TextStyle(fontSize = 20.sp),
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = "Сделайте снимок с задержкой в 3 секунды для проверки.",
+                            style = TextStyle(fontSize = 20.sp),
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = "У вас есть только 3 жизни!",
+                            style = TextStyle(fontSize = 20.sp),
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            showInstructionDialog = false
+                        },
+                        colors = ButtonDefaults.buttonColors(Color(128, 255, 128))
+                    ) {
+                        Text("ПОГНАЛИ")
+                    }
+                }
+            )
+        }
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -208,6 +274,14 @@ class ExaminationActivity : ComponentActivity() {
                     )
                 }
             },
+            actions = {
+                Text(
+                    text = "$indexLetter/$COUNT_GESTURES",
+                    fontSize = 23.sp,
+                    modifier = Modifier.padding(end = 8.dp),
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+            }
         )
     }
 
@@ -236,15 +310,23 @@ class ExaminationActivity : ComponentActivity() {
                 )
             }
 
-            if (shouldShowPhoto.value) {
-                Image(
-                painter = rememberImagePainter(photoUri),
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize()
-                )
+            if (showCheckmark) {
+                Checkmark()
             }
 
-            if (indexLetter > COUNT_GESTURES) {
+            if (showCross) {
+                Cross()
+            }
+
+//            if (shouldShowPhoto.value) {
+//                Image(
+//                painter = rememberImagePainter(photoUri),
+//                contentDescription = null,
+//                modifier = Modifier.fillMaxSize()
+//                )
+//            }
+
+            if (indexLetter > COUNT_GESTURES - 1) {
                 openDialogWinner = true
             } else {
                 itemsList.value?.let { letter ->
@@ -264,9 +346,9 @@ class ExaminationActivity : ComponentActivity() {
                                         .weight(1f)
                                         .align(Alignment.CenterVertically),
                                 ) {
-                                    thisLetter = letter[indexLetter].name;
+                                    thisLetter = letter[GESTURES_INDEXES[indexLetter]].name;
                                     Text(
-                                        text = letter[indexLetter].name,
+                                        text = letter[GESTURES_INDEXES[indexLetter]].name,
                                         style = MaterialTheme.typography.headlineLarge,
                                         fontSize = 60.sp,
                                         modifier = Modifier
@@ -290,6 +372,27 @@ class ExaminationActivity : ComponentActivity() {
             }
         }
     }
+
+    @Composable
+    private fun Checkmark() {
+        Image(
+            painter = painterResource(id = R.drawable.true1),
+            contentDescription = null,
+            modifier = Modifier
+                .size(200.dp)
+        )
+    }
+
+    @Composable
+    private fun Cross() {
+        Image(
+            painter = painterResource(id = R.drawable.false1),
+            contentDescription = null,
+            modifier = Modifier
+                .size(200.dp)
+        )
+    }
+
 
     @Composable
     private fun HeartsRow(countHeartOn: Int, countHeartOff: Int) {
@@ -396,7 +499,12 @@ class ExaminationActivity : ComponentActivity() {
             dismissButton = {
                 Button(
                     modifier = Modifier.fillMaxWidth(),
-                    onClick = { onRetry() },
+                    onClick = {
+                        GESTURES_INDEXES = (0 until MAX_INDEX_GESTURE)
+                        .toList()
+                        //.shuffled()
+                        .take(COUNT_GESTURES);
+                        onRetry() },
                     colors = ButtonDefaults.buttonColors(Color(128, 255, 128))
                 ) {
                     Text("Да")

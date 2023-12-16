@@ -6,24 +6,18 @@ from os.path import dirname, join
 def resize_and_grayscale(image_path, size=(28, 28)):
 	img = cv2.imread(image_path)
 
-	# Calculate the dimensions for cropping
 	crop_size = min(img.shape[0], img.shape[1])
 	crop_x = (img.shape[1] - crop_size) // 2
 	crop_y = (img.shape[0] - crop_size) // 2
 
-	# Crop the image
 	cropped_img = img[crop_y:crop_y+crop_size, crop_x:crop_x+crop_size]
 
-	# Resize the image to 28x28
 	resized_img = cv2.resize(cropped_img, size, interpolation=cv2.INTER_AREA)
 
-	# Convert the image to grayscale
 	resized_img_gray = cv2.cvtColor(resized_img, cv2.COLOR_BGR2GRAY)
 
-	# Normalize pixel values to the range [0, 1]
 	img_matrix = np.array(resized_img_gray) / 255
 
-	# Reshape the image for model input
 	img_matrix = img_matrix.reshape(-1, size[0], size[1], 1)
 
 	return img_matrix

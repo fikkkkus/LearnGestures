@@ -23,7 +23,6 @@ android {
         defaultConfig {
             pip {
                   install("numpy")
-                  install("scikit-learn")
                  install("tensorflow")
                install("opencv-python")
             }
